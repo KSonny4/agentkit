@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.env
+data/*.db
+data/schedule.json
+data/evolution-log.json
+logs/
+dist/
+build/
+*.egg
+.ruff_cache/
+.pytest_cache/
+memory/daily/*.md

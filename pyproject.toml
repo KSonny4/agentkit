@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "agentkit"
+version = "0.1.0"
+description = "Minimal autonomous agent framework wrapping Claude Code CLI"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+agentkit = "agentkit.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
