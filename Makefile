@@ -1,13 +1,13 @@
 .PHONY: install test lint clean
 
 install:
-	pip install -e ".[dev]"
+	uv sync
 
 test:
-	pytest -v
+	uv run pytest -v
 
 lint:
-	ruff check .
+	uv run ruff check .
 
 clean:
 	rm -rf __pycache__ .pytest_cache *.egg-info dist build .ruff_cache

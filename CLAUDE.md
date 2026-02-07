@@ -113,10 +113,10 @@ Don't add it to core. Write a skill instead:
 ## How to Create a Consumer Agent
 
 1. Create a new repo
-2. `pip install agentkit` (or add as dependency)
+2. `uv add agentkit` (or add as dependency)
 3. Create `profiles/<agent-name>/` with identity.md, tools.md, evaluation.md
 4. Optionally add custom tools extending `agentkit.tools.base.Tool`
-5. Run: `agentkit task --profile <agent-name> "your prompt"`
+5. Run: `uv run agentkit task --profile <agent-name> "your prompt"`
 6. Or deploy: `docker-compose up -d` with AGENT_PROFILE set
 
 ## Key Design Decisions

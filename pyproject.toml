@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=68.0"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "agentkit"
@@ -12,8 +12,11 @@ dependencies = ["python-telegram-bot>=21.0"]
 [project.scripts]
 agentkit = "agentkit.cli:main"
 
-[tool.setuptools.packages.find]
-include = ["agentkit*"]
+[dependency-groups]
+dev = ["pytest>=8.0", "ruff>=0.4"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["agentkit"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

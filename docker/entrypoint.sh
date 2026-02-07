@@ -15,4 +15,4 @@ echo "=== agentkit daemon ==="
 echo "Profile: ${AGENT_PROFILE:-playground}"
 echo "Starting..."
 
-exec python3 -m agentkit "$@"
+exec uv run python -m agentkit "$@"
