@@ -1,7 +1,5 @@
 """Tests for configuration system."""
 
-from pathlib import Path
-
 from agentkit.config import Config
 
 
