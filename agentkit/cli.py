@@ -50,7 +50,9 @@ def main() -> None:
         agent = Agent(config)
         tool_mode = ToolMode.READWRITE if args.write else ToolMode.READONLY
         agent.mailbox.enqueue(args.prompt, source="cli")
-        agent.process_next(tool_mode=tool_mode)
+        result = agent.process_next(tool_mode=tool_mode)
+        if result:
+            print(result)
         _send_pending(config, agent)
 
     elif args.command == "evaluate":
