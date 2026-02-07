@@ -44,3 +44,12 @@ class Config:
     @property
     def telegram_chat_id(self) -> str:
         return os.environ.get("TELEGRAM_CHAT_ID", "")
+
+    @property
+    def heartbeat_interval(self) -> int:
+        """Heartbeat interval in seconds. 0 = disabled."""
+        return int(os.environ.get("HEARTBEAT_INTERVAL", "600"))
+
+    @property
+    def heartbeat_path(self) -> Path:
+        return self.profile_dir / "heartbeat.md"
