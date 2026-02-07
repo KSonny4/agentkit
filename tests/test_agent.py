@@ -92,6 +92,29 @@ def test_agent_run_all(mock_claude, tmp_path):
 
 
 @patch("agentkit.agent.invoke_claude")
+def test_agent_collects_schedule_directive(mock_claude, tmp_path):
+    mock_claude.return_value = "ok\nSCHEDULE: tell a joke every time"
+    agent = _make_agent(tmp_path)
+    agent.mailbox.enqueue("set up joke cron", source="test")
+    result = agent.process_next()
+    assert agent.pending_schedule == "tell a joke every time"
+    assert "SCHEDULE:" not in result
+
+
+@patch("agentkit.agent.invoke_claude")
+def test_agent_schedule_resets_each_process(mock_claude, tmp_path):
+    mock_claude.return_value = "SCHEDULE: do stuff"
+    agent = _make_agent(tmp_path)
+    agent.mailbox.enqueue("task1", source="test")
+    agent.process_next()
+    assert agent.pending_schedule == "do stuff"
+    mock_claude.return_value = "no directives"
+    agent.mailbox.enqueue("task2", source="test")
+    agent.process_next()
+    assert agent.pending_schedule is None
+
+
+@patch("agentkit.agent.invoke_claude")
 def test_agent_error_returns_none(mock_claude, tmp_path):
     mock_claude.side_effect = ClaudeError("boom")
     agent = _make_agent(tmp_path)

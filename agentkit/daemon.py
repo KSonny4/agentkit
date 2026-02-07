@@ -30,10 +30,17 @@ class Daemon:
         self.agent.mailbox.enqueue(text, source=source)
         return self.agent.process_next()
 
-    async def _send_response(self, response: str, chat_id: str) -> None:
-        """Send agent response + any pending TELEGRAM: messages."""
+    def _apply_schedule(self) -> None:
+        """If agent emitted SCHEDULE:, write it to heartbeat.md."""
+        if self.agent.pending_schedule:
+            path = self.config.heartbeat_path
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(self.agent.pending_schedule + "\n")
+            log.info("Schedule updated: %s", self.agent.pending_schedule[:80])
+
+    async def _send_to_chat(self, text: str, chat_id: str) -> None:
         bot = TelegramBot(self.config.telegram_bot_token, chat_id)
-        await bot.send(response)
+        await bot.send(text)
 
     async def _send_pending(self) -> None:
         """Send pending TELEGRAM: directive messages to notification channel."""
@@ -47,26 +54,30 @@ class Daemon:
     async def _heartbeat_loop(self) -> None:
         """Internal cron — runs heartbeat.md every HEARTBEAT_INTERVAL seconds."""
         interval = self.config.heartbeat_interval
-        heartbeat_path = self.config.heartbeat_path
-
-        if interval <= 0 or not heartbeat_path.exists():
-            log.info("No heartbeat configured (interval=%d, exists=%s)", interval, heartbeat_path.exists())
+        if interval <= 0:
             return
 
-        log.info("Heartbeat every %ds from %s", interval, heartbeat_path.name)
+        log.info("Heartbeat loop started (interval=%ds)", interval)
 
         while self._running:
             await asyncio.sleep(interval)
             if not self._running:
                 break
 
+            heartbeat_path = self.config.heartbeat_path
+            if not heartbeat_path.exists():
+                continue
+
             try:
-                prompt = heartbeat_path.read_text()
-                log.info("Running heartbeat")
+                prompt = heartbeat_path.read_text().strip()
+                if not prompt:
+                    continue
+                log.info("Running heartbeat: %s", prompt[:80])
                 response = await asyncio.to_thread(self.handle_message, prompt, "heartbeat")
+                self._apply_schedule()
 
                 if response and self.config.telegram_chat_id:
-                    await self._send_response(response, self.config.telegram_chat_id)
+                    await self._send_to_chat(response, self.config.telegram_chat_id)
                 await self._send_pending()
             except Exception as e:
                 log.error("Heartbeat failed: %s", e)
@@ -78,7 +89,6 @@ class Daemon:
         asyncio.run(self._run_async())
 
     async def _run_async(self) -> None:
-        """Async entrypoint — runs Telegram polling and heartbeat concurrently."""
         app = ApplicationBuilder().token(self.config.telegram_bot_token).build()
 
         async def on_message(update: Update, context) -> None:
@@ -90,25 +100,22 @@ class Daemon:
             log.info("Received from chat %s: %s", chat_id, user_text[:80])
 
             response = await asyncio.to_thread(self.handle_message, user_text)
+            self._apply_schedule()
 
             if response:
-                await self._send_response(response, chat_id)
+                await self._send_to_chat(response, chat_id)
             await self._send_pending()
 
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_message))
 
-        # Start heartbeat as background task
         heartbeat_task = asyncio.create_task(self._heartbeat_loop())
 
         log.info("Telegram polling started — endless loop")
 
-        # python-telegram-bot's run_polling manages its own loop,
-        # so we use the lower-level initialize/start/updater pattern
         async with app:
             await app.start()
             await app.updater.start_polling()
 
-            # Wait until stopped
             stop_event = asyncio.Event()
             loop = asyncio.get_event_loop()
             for sig in (signal.SIGINT, signal.SIGTERM):

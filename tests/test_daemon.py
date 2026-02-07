@@ -57,3 +57,23 @@ def test_daemon_validate_passes(tmp_path, monkeypatch):
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "tok")
     daemon = _make_daemon(tmp_path)
     daemon.validate()  # should not raise
+
+
+@patch("agentkit.agent.invoke_claude")
+def test_apply_schedule_writes_heartbeat(mock_claude, tmp_path):
+    mock_claude.return_value = "ok\nSCHEDULE: tell a joke"
+    daemon = _make_daemon(tmp_path)
+    daemon.handle_message("send me jokes periodically")
+    daemon._apply_schedule()
+    heartbeat = daemon.config.heartbeat_path
+    assert heartbeat.exists()
+    assert "tell a joke" in heartbeat.read_text()
+
+
+@patch("agentkit.agent.invoke_claude")
+def test_apply_schedule_noop_without_directive(mock_claude, tmp_path):
+    mock_claude.return_value = "just a normal response"
+    daemon = _make_daemon(tmp_path)
+    daemon.handle_message("hello")
+    daemon._apply_schedule()
+    assert not daemon.config.heartbeat_path.exists()
