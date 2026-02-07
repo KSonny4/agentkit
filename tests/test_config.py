@@ -28,3 +28,15 @@ def test_model_always_opus():
     # model is not settable via init
     config2 = Config(profile="test")
     assert config2.model == "claude-opus-4-6"
+
+
+def test_from_env_default(monkeypatch):
+    monkeypatch.delenv("AGENT_PROFILE", raising=False)
+    config = Config.from_env()
+    assert config.profile == "playground"
+
+
+def test_from_env_custom(monkeypatch):
+    monkeypatch.setenv("AGENT_PROFILE", "nanoclaw")
+    config = Config.from_env()
+    assert config.profile == "nanoclaw"

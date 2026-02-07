@@ -11,6 +11,12 @@ class Config:
     project_root: Path = field(default_factory=lambda: Path(__file__).parent.parent)
     model: str = field(default="claude-opus-4-6", init=False)
 
+    @classmethod
+    def from_env(cls) -> "Config":
+        """Create Config from environment variables."""
+        profile = os.environ.get("AGENT_PROFILE", "playground")
+        return cls(profile=profile)
+
     @property
     def profile_dir(self) -> Path:
         return self.project_root / "profiles" / self.profile
