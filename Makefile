@@ -34,8 +34,8 @@ run: check-auth
 
 agent: stop check-auth
 	@echo "=== Starting agent (profile: $(PROFILE)) ==="
-	@rm -f profiles/$(PROFILE)/heartbeat.md
 	@rm -f data/agentkit.db
+	@crontab -r 2>/dev/null || true
 	@export $$(grep -v '^\#' .env | xargs) ; \
 	nohup uv run agentkit run --profile $(PROFILE) > logs/agent.log 2>&1 & \
 	echo $$! > $(PID_FILE) && \

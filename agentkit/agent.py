@@ -18,7 +18,6 @@ class Agent:
         self.mailbox = Mailbox(config.db_path)
         self.context = ContextBuilder(config, self.memory)
         self.pending_messages: list[str] = []
-        self.pending_schedule: str | None = None
 
     def process_next(self, *, tool_mode: ToolMode = ToolMode.READONLY) -> str | None:
         """Process the next task. Returns cleaned response or None."""
@@ -27,7 +26,6 @@ class Agent:
             return None
 
         self.pending_messages = []
-        self.pending_schedule = None
         log.info("Processing task %d: %s", task["id"], task["content"][:80])
 
         try:
@@ -55,8 +53,6 @@ class Agent:
                 self.memory.append_long_term(stripped[7:].strip())
             elif stripped.startswith("TELEGRAM:"):
                 self.pending_messages.append(stripped[9:].strip())
-            elif stripped.startswith("SCHEDULE:"):
-                self.pending_schedule = stripped[9:].strip()
 
     @staticmethod
     def _clean_response(response: str) -> str:
@@ -64,11 +60,7 @@ class Agent:
         lines = []
         for line in response.split("\n"):
             stripped = line.strip()
-            if (
-                not stripped.startswith("MEMORY:")
-                and not stripped.startswith("TELEGRAM:")
-                and not stripped.startswith("SCHEDULE:")
-            ):
+            if not stripped.startswith("MEMORY:") and not stripped.startswith("TELEGRAM:"):
                 lines.append(line)
         return "\n".join(lines).strip()
 
