@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  agent:
+    build: .
+    env_file: .env
+    environment:
+      - AGENT_PROFILE=${AGENT_PROFILE:-playground}
+    volumes:
+      - ./profiles:/app/profiles:ro
+      - ./memory:/app/memory
+      - ./data:/app/data
+    restart: unless-stopped
