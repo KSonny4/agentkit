@@ -32,7 +32,7 @@ def invoke_claude(
     Model is ALWAYS claude-opus-4-6. No override possible.
     Default tool_mode is READONLY — write access requires explicit opt-in.
     """
-    cmd = ["claude", "--print", "--model", MODEL]
+    cmd = ["claude", "-p", "--model", MODEL]
 
     if tool_mode == ToolMode.READONLY:
         cmd.extend(["--allowedTools", READONLY_TOOLS])
@@ -58,4 +58,5 @@ def invoke_claude(
     except subprocess.TimeoutExpired:
         raise ClaudeError(f"Claude CLI timed out after {timeout}s")
     except subprocess.CalledProcessError as e:
-        raise ClaudeError(f"Claude CLI failed: {e.stderr}")
+        error = e.stderr or e.stdout or f"exit code {e.returncode}"
+        raise ClaudeError(f"Claude CLI failed: {error}")
