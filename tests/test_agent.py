@@ -2,7 +2,7 @@
 
 from unittest.mock import patch
 
-from agentkit.agent import Agent
+from agentkit.agent import Agent, TaskResult
 from agentkit.claude import ToolMode, ClaudeError
 from agentkit.config import Config
 
@@ -20,7 +20,8 @@ def test_agent_process_task_returns_response(mock_claude, tmp_path):
     agent = _make_agent(tmp_path)
     agent.mailbox.enqueue("do something", source="test")
     result = agent.process_next()
-    assert result == "task completed successfully"
+    assert isinstance(result, TaskResult)
+    assert result.response == "task completed successfully"
     mock_claude.assert_called_once()
 
 
@@ -53,8 +54,8 @@ def test_agent_collects_telegram_directives(mock_claude, tmp_path):
     mock_claude.return_value = "result\nTELEGRAM: hello from agent\nMEMORY: a fact"
     agent = _make_agent(tmp_path)
     agent.mailbox.enqueue("do work", source="test")
-    agent.process_next()
-    assert agent.pending_messages == ["hello from agent"]
+    result = agent.process_next()
+    assert result.pending_messages == ["hello from agent"]
 
 
 @patch("agentkit.agent.invoke_claude")
@@ -63,23 +64,23 @@ def test_agent_strips_directives_from_response(mock_claude, tmp_path):
     agent = _make_agent(tmp_path)
     agent.mailbox.enqueue("task", source="test")
     result = agent.process_next()
-    assert "MEMORY:" not in result
-    assert "TELEGRAM:" not in result
-    assert "useful answer" in result
-    assert "more text" in result
+    assert "MEMORY:" not in result.response
+    assert "TELEGRAM:" not in result.response
+    assert "useful answer" in result.response
+    assert "more text" in result.response
 
 
 @patch("agentkit.agent.invoke_claude")
-def test_agent_pending_messages_reset_each_process(mock_claude, tmp_path):
+def test_agent_pending_messages_independent_per_call(mock_claude, tmp_path):
     mock_claude.return_value = "TELEGRAM: first"
     agent = _make_agent(tmp_path)
     agent.mailbox.enqueue("task1", source="test")
     agent.mailbox.enqueue("task2", source="test")
-    agent.process_next()
-    assert agent.pending_messages == ["first"]
+    result1 = agent.process_next()
+    assert result1.pending_messages == ["first"]
     mock_claude.return_value = "no directives"
-    agent.process_next()
-    assert agent.pending_messages == []
+    result2 = agent.process_next()
+    assert result2.pending_messages == []
 
 
 @patch("agentkit.agent.invoke_claude")

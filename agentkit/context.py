@@ -43,8 +43,13 @@ class ContextBuilder:
         return (
             f"## Task\n\n{task}\n\n"
             "## Instructions\n\n"
+            "You are a fully autonomous agent. You ACT, you do not ASK.\n\n"
             "1. Analyze the task using your identity, memory, and tools.\n"
-            "2. Take action or provide analysis.\n"
+            "2. Execute the task completely. Do NOT ask for confirmation, permission, "
+            "or clarification. Do NOT say 'Would you like me to...' or "
+            "'Should I...'. If the task is ambiguous, make a reasonable decision "
+            "and act on it.\n"
             "3. Verify your output is correct before responding.\n"
             "4. State any observations worth remembering (prefix with MEMORY:).\n"
+            "5. Report what you DID, not what you COULD do.\n"
         )

@@ -5,17 +5,17 @@ import logging
 import os
 from pathlib import Path
 
-from agentkit.agent import Agent
+from agentkit.agent import Agent, TaskResult
 from agentkit.claude import ToolMode
 from agentkit.config import Config
 from agentkit.telegram_bot import TelegramBot
 
 
-def _send_pending(config: Config, agent: Agent) -> None:
+def _send_pending(config: Config, result: TaskResult | None) -> None:
     """Send pending TELEGRAM: messages if configured."""
-    if agent.pending_messages and config.telegram_bot_token:
+    if result and result.pending_messages and config.telegram_bot_token:
         bot = TelegramBot(config.telegram_bot_token, config.telegram_chat_id)
-        for msg in agent.pending_messages:
+        for msg in result.pending_messages:
             bot.send_sync(msg)
 
 
@@ -43,7 +43,11 @@ def main() -> None:
     parser = create_parser()
     args = parser.parse_args()
 
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        datefmt="%H:%M:%S",
+    )
 
     if args.command == "task":
         config = Config(profile=args.profile, project_root=Path.cwd())
@@ -52,8 +56,8 @@ def main() -> None:
         agent.mailbox.enqueue(args.prompt, source="cli")
         result = agent.process_next(tool_mode=tool_mode)
         if result:
-            print(result)
-        _send_pending(config, agent)
+            print(result.response)
+        _send_pending(config, result)
 
     elif args.command == "evaluate":
         config = Config(profile=args.profile, project_root=Path.cwd())
@@ -64,8 +68,8 @@ def main() -> None:
         agent = Agent(config)
         eval_template = eval_path.read_text()
         agent.mailbox.enqueue(eval_template, source="cron-evaluate")
-        agent.process_next(tool_mode=ToolMode.READONLY)
-        _send_pending(config, agent)
+        result = agent.process_next(tool_mode=ToolMode.READONLY)
+        _send_pending(config, result)
 
     elif args.command == "run":
         from agentkit.daemon import Daemon

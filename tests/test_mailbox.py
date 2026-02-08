@@ -1,5 +1,7 @@
 """Tests for SQLite-backed mailbox."""
 
+import threading
+
 from agentkit.mailbox import Mailbox, TaskStatus
 
 
@@ -48,3 +50,32 @@ def test_fifo_order(tmp_path):
     assert mb.dequeue()["content"] == "second"
     assert mb.dequeue()["content"] == "third"
     assert mb.dequeue() is None
+
+
+def test_concurrent_dequeue_no_duplicates(tmp_path):
+    """Two threads dequeue simultaneously — each task grabbed at most once."""
+    mb = Mailbox(tmp_path / "data" / "test.db")
+    for i in range(10):
+        mb.enqueue(f"task-{i}", source="test")
+
+    results: list[dict | None] = []
+    lock = threading.Lock()
+
+    def worker():
+        while True:
+            task = mb.dequeue()
+            if task is None:
+                break
+            with lock:
+                results.append(task)
+
+    t1 = threading.Thread(target=worker)
+    t2 = threading.Thread(target=worker)
+    t1.start()
+    t2.start()
+    t1.join()
+    t2.join()
+
+    # Every task dequeued exactly once
+    contents = sorted(t["content"] for t in results)
+    assert contents == [f"task-{i}" for i in range(10)]

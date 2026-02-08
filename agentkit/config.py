@@ -34,6 +34,10 @@ class Config:
         return self.project_root / "data" / "schedule.json"
 
     @property
+    def progress_path(self) -> Path:
+        return self.project_root / "data" / "progress.jsonl"
+
+    @property
     def evolution_log_path(self) -> Path:
         return self.project_root / "data" / "evolution-log.json"
 

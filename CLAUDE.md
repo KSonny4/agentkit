@@ -4,7 +4,7 @@
 
 Minimal autonomous agent framework (~600 LOC core) wrapping Claude Code CLI.
 Consumer agents import agentkit and bring their own profiles, tools, and domain knowledge.
-Docker-deployable as a SaaS-like daemon with Telegram I/O.
+Telegram I/O with daemon mode.
 
 ## Philosophy: Skills over Features
 
@@ -40,11 +40,6 @@ Claude CLI → Result Parser → Memory Update + Telegram notifications
 - `daemon.py` — Long-running Telegram-connected agent daemon
 - `tools/` — Tool ABC, registry, shell tool
 
-### Docker Deployment
-- `Dockerfile` — Node.js + Python + Claude CLI container
-- `docker-compose.yml` — Single-command deploy
-- `docker/entrypoint.sh` — Container entry point
-
 ### Skills (each transforms the fork)
 - `/add-scheduler` — Adds scheduler.py, SCHEDULE: directive, schedule CLI commands
 - `/add-self-evolution` — Adds evolve.py, self-improve CLI command
@@ -74,29 +69,14 @@ profiles/<name>/
 
 ## Daemon Mode
 
-Start with `agentkit run` or `docker-compose up`. The daemon:
+Start with `make agent` or `make run`. The daemon:
 1. Validates `TELEGRAM_BOT_TOKEN` is set
 2. Starts Telegram polling loop
 3. On each message: enqueue → process → respond
 4. TELEGRAM: directives are sent to the notification channel (`TELEGRAM_CHAT_ID`)
-5. Runs forever (restart: unless-stopped in Docker)
+5. Agent has READWRITE access (Bash, crontab, send-telegram)
 
-## Docker Deployment
-
-```bash
-# 1. Create profile
-mkdir profiles/myagent/
-# Write identity.md, tools.md, evaluation.md
-
-# 2. Configure
-cp .env.example .env  # fill in API keys
-
-# 3. Deploy
-docker-compose up -d
-```
-
-Environment variables:
-- `ANTHROPIC_API_KEY` — required
+Environment variables (in `.env`):
 - `TELEGRAM_BOT_TOKEN` — required for daemon mode
 - `TELEGRAM_CHAT_ID` — notification channel
 - `AGENT_PROFILE` — profile name (default: playground)
@@ -117,7 +97,7 @@ Don't add it to core. Write a skill instead:
 3. Create `profiles/<agent-name>/` with identity.md, tools.md, evaluation.md
 4. Optionally add custom tools extending `agentkit.tools.base.Tool`
 5. Run: `uv run agentkit task --profile <agent-name> "your prompt"`
-6. Or deploy: `docker-compose up -d` with AGENT_PROFILE set
+6. Or run daemon: `make agent PROFILE=<agent-name>`
 
 ## Key Design Decisions
 
@@ -127,4 +107,3 @@ Don't add it to core. Write a skill instead:
 - **Why file-based memory?** Human-readable, git-trackable, editable.
 - **Why skills over features?** Core stays small. Forks customize freely.
 - **Why Telegram?** Primary I/O channel — humans interact via chat, agents respond.
-- **Why Docker?** One command deploy. Each agent = one container.

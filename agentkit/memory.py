@@ -1,5 +1,6 @@
 """Memory management — daily observations + long-term knowledge."""
 
+import threading
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -10,6 +11,7 @@ class Memory:
         self.memory_dir.mkdir(parents=True, exist_ok=True)
         self.daily_dir = memory_dir / "daily"
         self.daily_dir.mkdir(exist_ok=True)
+        self._lock = threading.Lock()
 
     @property
     def _long_term_path(self) -> Path:
@@ -27,22 +29,24 @@ class Memory:
         self._long_term_path.write_text(content)
 
     def append_long_term(self, content: str) -> None:
-        existing = self.read_long_term()
-        separator = "\n\n" if existing else ""
-        self._long_term_path.write_text(existing + separator + content)
+        with self._lock:
+            existing = self.read_long_term()
+            separator = "\n\n" if existing else ""
+            self._long_term_path.write_text(existing + separator + content)
 
     def read_today(self) -> str:
         path = self._daily_path()
         return path.read_text() if path.exists() else ""
 
     def append_today(self, content: str) -> None:
-        path = self._daily_path()
-        if not path.exists():
-            header = f"# {date.today().isoformat()}\n\n"
-            path.write_text(header + content + "\n")
-        else:
-            existing = path.read_text()
-            path.write_text(existing + "\n" + content + "\n")
+        with self._lock:
+            path = self._daily_path()
+            if not path.exists():
+                header = f"# {date.today().isoformat()}\n\n"
+                path.write_text(header + content + "\n")
+            else:
+                existing = path.read_text()
+                path.write_text(existing + "\n" + content + "\n")
 
     def read_recent(self, days: int = 7) -> str:
         parts = []

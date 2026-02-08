@@ -27,8 +27,8 @@ def test_handle_message_enqueues_and_processes(mock_claude, tmp_path):
     mock_claude.return_value = "I helped you\nMEMORY: user asked for help"
     daemon = _make_daemon(tmp_path)
     result = daemon.handle_message("help me")
-    assert "I helped you" in result
-    assert "MEMORY:" not in result
+    assert "I helped you" in result.response
+    assert "MEMORY:" not in result.response
 
 
 @patch("agentkit.agent.invoke_claude")
@@ -42,8 +42,8 @@ def test_handle_message_returns_none_on_error(mock_claude, tmp_path):
 def test_handle_message_collects_pending(mock_claude, tmp_path):
     mock_claude.return_value = "ok\nTELEGRAM: notification"
     daemon = _make_daemon(tmp_path)
-    daemon.handle_message("do thing")
-    assert daemon.agent.pending_messages == ["notification"]
+    result = daemon.handle_message("do thing")
+    assert result.pending_messages == ["notification"]
 
 
 def test_daemon_validate_requires_token(tmp_path, monkeypatch):

@@ -54,3 +54,4 @@ def test_build_task_prompt(tmp_path):
     prompt = ctx.build_task_prompt("analyze this data")
     assert "analyze this data" in prompt
     assert "MEMORY:" in prompt
+    assert "Do NOT ask for confirmation" in prompt

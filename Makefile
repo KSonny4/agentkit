@@ -1,7 +1,8 @@
-.PHONY: install test lint clean run agent stop check-auth
+.PHONY: install test lint clean run agent update-agent stop check-auth reset spy status spy-report
 
 PROFILE ?= playground
 PID_FILE = .agent.pid
+LOG ?= 20
 
 install:
 	uv sync
@@ -27,6 +28,9 @@ stop:
 	else \
 		echo "No agent running"; \
 	fi
+	@for plist in ~/Library/LaunchAgents/com.agentkit.*.plist; do \
+		[ -f "$$plist" ] && launchctl unload "$$plist" 2>/dev/null && rm -f "$$plist" && echo "✓ Removed $$(basename $$plist)"; \
+	done; true
 
 run: check-auth
 	@export $$(grep -v '^\#' .env | xargs) ; \
@@ -41,5 +45,32 @@ agent: stop check-auth
 	echo $$! > $(PID_FILE) && \
 	echo "✓ Agent running (pid $$!, log: logs/agent.log)"
 
+update-agent: stop check-auth
+	@echo "=== Restarting agent (profile: $(PROFILE), keeping state) ==="
+	@export $$(grep -v '^\#' .env | xargs) ; \
+	nohup uv run agentkit run --profile $(PROFILE) > logs/agent.log 2>&1 & \
+	echo $$! > $(PID_FILE) && \
+	echo "✓ Agent running (pid $$!, log: logs/agent.log)"
+
+reset: stop
+	@echo "=== Wiping memory + DB ==="
+	@rm -f data/agentkit.db
+	@rm -f memory/daily/*.md
+	@echo "# Long-Term Memory\n\nThis file stores persistent observations and learned facts." > memory/MEMORY.md
+	@echo "✓ Clean slate"
+
 logs:
 	@tail -f logs/agent.log
+
+status:
+	@AGENT_PROFILE=$(PROFILE) scripts/spy.sh $(LOG)
+
+spy:
+	@echo "Watching agent (Ctrl-C to stop)..."
+	@while true; do \
+		AGENT_PROFILE=$(PROFILE) scripts/spy.sh $(LOG); \
+		sleep 5; \
+	done
+
+spy-report:
+	@scripts/spy-report.sh

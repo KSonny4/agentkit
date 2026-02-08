@@ -6,6 +6,7 @@ __pycache__/
 data/*.db
 data/schedule.json
 data/evolution-log.json
+data/progress.jsonl
 logs/
 dist/
 build/
@@ -13,6 +14,5 @@ build/
 .ruff_cache/
 .pytest_cache/
 memory/daily/*.md
-docker-compose.override.yml
 logs/
 .agent.pid

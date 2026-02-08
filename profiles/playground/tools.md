@@ -11,14 +11,34 @@ You have full access to Bash, Read, Write, Edit, Glob, Grep.
 
 ### Sending Telegram messages
 ```bash
-/app/bin/send-telegram "your message here"
+bin/send-telegram "your message here"
 ```
 
-### Scheduling recurring tasks (crontab)
-You can create cron jobs that run on a schedule. Example:
+### Scheduling recurring tasks (macOS launchd)
+Create a LaunchAgent plist in ~/Library/LaunchAgents/ to run tasks on a schedule.
+Example — send a message every 5 minutes:
 ```bash
-(crontab -l 2>/dev/null; echo "*/5 * * * * /app/bin/send-telegram 'hello every 5 min'") | crontab -
+cat > ~/Library/LaunchAgents/com.agentkit.myjob.plist << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.agentkit.myjob</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>bin/send-telegram</string>
+        <string>hello every 5 min</string>
+    </array>
+    <key>StartInterval</key>
+    <integer>300</integer>
+    <key>RunAtLoad</key>
+    <true/>
+</dict>
+</plist>
+EOF
+launchctl load ~/Library/LaunchAgents/com.agentkit.myjob.plist
 ```
 
-To list current cron jobs: `crontab -l`
-To clear all cron jobs: `crontab -r`
+To list: `launchctl list | grep agentkit`
+To stop: `launchctl unload ~/Library/LaunchAgents/com.agentkit.myjob.plist`
